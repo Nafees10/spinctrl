@@ -1,0 +1,13 @@
+{
+	"authors": [
+		"Nafees"
+	],
+	"copyright": "Copyright © 2020, Nafees",
+	"dependencies": {
+		"qui": "~>0.3.0",
+		"utils": "~>0.3.7"
+	},
+	"description": "Controls spinning LED strip",
+	"license": "proprietary",
+	"name": "spinctrl"
+}
