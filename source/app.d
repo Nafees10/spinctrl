@@ -3,6 +3,8 @@ import std.file;
 import std.path;
 import core.stdc.stdlib : exit;
 import std.conv : to;
+import std.concurrency;
+import core.thread;
 
 import qui.qui;
 import qui.widgets;
