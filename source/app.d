@@ -201,6 +201,8 @@ public:
 		_infoLayout.addWidget([_labelToggleTime, _labelRpm, _labelDegLost, _labelFps]);
 		_inputLayout.addWidget([_labelInput, _commandInput]);
 		_term.addWidget([_infoLayout, _log, _progBar, _inputLayout]);
+		// set the status indicators
+		_infoLayout.size.maxHeight = 1;
 		// set the input getters
 		_inputLayout.size.maxHeight = 1;
 		_labelInput.textColor = ALT_FG;
