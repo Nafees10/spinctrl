@@ -20,13 +20,15 @@ public struct Message{
 	public union{
 		/// stores image path for this.Type.DrawImage && this.Type.DrawAnimation
 		public string imgPath;
-		public union{
-			uint toggleTime; /// average micro seconds to switch 1 pin from LOW->HIGH or HIGH->LOW. Only valid for Type.Status
-			uint frameSkipCount; /// number of frames to skip every `frameCount`
-		}
-		public union{
-			uint RPM; /// calculated RPM. Only valid for Type.Status
-			uint frameCount; /// number of frames after `frameSkipCount` frames are skipped
+		public struct{
+			public union{
+				uint toggleTime; /// average micro seconds to switch 1 pin from LOW->HIGH or HIGH->LOW. Only valid for Type.Status
+				uint frameSkipCount; /// number of frames to skip every `frameCount`
+			}
+			public union{
+				uint RPM; /// calculated RPM. Only valid for Type.Status
+				uint frameCount; /// number of frames after `frameSkipCount` frames are skipped
+			}
 		}
 	}
 }
