@@ -13,6 +13,7 @@ import utils.misc;
 import utils.lists;
 
 import ctrl;
+import command; // for decoding input commands
 
 /// default directory where images are read from
 const string DEFAULT_IMG_DIR = "~/.local/spinctrl/";
@@ -50,28 +51,22 @@ void main(string[] args){
 		exit(1);
 	}
 	if (args.length > 1 && (args[1] == "--help" || args[1] == "-h")){
-		writeln("Usage:\nspinctrl SERIAL/FILE/PATH [IMAGES/DIR]");
-		writeln("By default, IMAGES/DIR is: ",DEFAULT_IMG_DIR);
+		writeln("Usage:\nspinctrl SERIAL/FILE/PATH");
 		exit(0);
 	}
 	if (args.length < 2){
 		stderr.writeln("Serial file not specified.");
-		stderr.writeln("Usage:\nspinctrl SERIAL/FILE/PATH [IMAGES/DIR]");
-		stderr.writeln("By default, IMAGES/DIR is: ",DEFAULT_IMG_DIR);
+		stderr.writeln("Usage:\nspinctrl SERIAL/FILE/PATH");
 		exit(1);
 	}
-	// make sure files exists, and if IMAGES/DIR is specified, make sure its a directory, not a file
-	string serialPath = args[1], imgDir = args.length > 2 ? args[2] : defImgPath;
+	// make sure files exists
+	string serialPath = args[1];
 	if (!exists(serialPath) || !isFile(serialPath)){
 		stderr.writeln("path specified for serial file is invaid");
 		exit(1);
 	}
-	if (!exists(imgDir) || !isDir(imgDir)){
-		stderr.writeln("path specified for images-directory is invaid");
-		exit(1);
-	}
 	// start the app
-	App prog = new App(imgDir, serialPath);
+	App prog = new App(defImgPath, serialPath);
 	prog.run();
 	.destroy(prog);
 	exit(0);
@@ -90,9 +85,9 @@ private:
 	TextLabelWidget _labelInput; /// to show where to input
 	EditLineWidget _commandInput; /// used to input commands
 // other vars
-	string _dir;
-	string _serialPath;
-	File _serial;
+	string _dir; /// directory from where to find images
+	string _serialPath; /// path of serial file
+	Tid _ctrlTid; /// Tid of thread running ctrl()
 	
 	uinteger _rpm, _fps, _toggleTime, _degLost; /// stores last read values of  rpm, and toggleTime. _fps and _degLost are calculated
 	uinteger _animationFramesPlayed, _animationFramesTotal; /// number of frams of an animation that have been played/total
@@ -103,7 +98,16 @@ private:
 protected:
 	/// interpretes commands, & gets them executed
 	void execCommand(string command){
-
+		_log.add("> "~command);
+		string error;
+		CtrlMessage commandMessage = readCommand(command, _dir, error);
+		if (error.length > 0){
+			_log.add("  "~error);
+		}else{
+			_log.add("  "~commandMessage.prettyString);
+			// send it away
+			_ctrlTid.send(commandMessage);
+		}
 	}
 	/// keyboard for _commandInput
 	void commandKeyboard(QWidget widget, KeyboardEvent key){
@@ -185,7 +189,9 @@ public:
 			}
 		}
 		_commandHistoryIndex = _commandHistoryIndex.max;
-		// TODO: open the serial file
+		
+		// spawn the ctrl Tid
+		_ctrlTid = spawn(&ctrlThread);
 
 		// set up the UI
 		_term = new QTerminal();
