@@ -1,4 +1,4 @@
-module command;
+module spinctrl.command;
 
 import utils.misc;
 
@@ -7,8 +7,8 @@ import std.path;
 import std.range;
 import std.conv : to;
 
-import ctrl : CtrlMessage;
-import texted : canDisplay;
+import spinctrl.ctrl : CtrlMessage;
+import spinctrl.texted : canDisplay;
 
 /// List of all valid commands
 private const string[] COMMANDS = [

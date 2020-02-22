@@ -12,8 +12,8 @@ import qui.widgets;
 import utils.misc;
 import utils.lists;
 
-import ctrl;
-import command; // for decoding input commands
+import spinctrl.ctrl;
+import spinctrl.command; // for decoding input commands
 
 /// default directory where images are read from
 const string DEFAULT_IMG_DIR = "~/.local/spinctrl/";

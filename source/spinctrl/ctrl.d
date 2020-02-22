@@ -1,10 +1,12 @@
-module ctrl;
+module spinctrl.ctrl;
 
 import std.conv : to;
 import std.concurrency;
 import core.thread;
 
 import utils.misc;
+
+import spinctrl.serialio;
 
 /// message between UI thread and ctrl thread
 public struct CtrlMessage{
@@ -91,5 +93,6 @@ public struct CtrlMessage{
 /// 
 /// Awaits `ctrl.Message`, executes received commands. Frequently, sends back RPM and toggleTime
 void ctrlThread(){
-	// TODO: spawn serialio thread
+	Tid serialThread = spawn(&serialIOThread);
+	
 }
