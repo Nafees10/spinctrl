@@ -155,6 +155,7 @@ protected:
 				if (_expectingStatus){
 					// log it
 					_log.add("#STATUS: "~msg.prettyString);
+					_expectingStatus = false;
 				}
 			}else if (msg.type == CtrlMessage.Type.Log){
 				_log.add(msg.text);
