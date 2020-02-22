@@ -25,7 +25,7 @@ const uint[2] RANGE_RPM = [1000,2000];
 /// safe toggle time(micro-seconds) range (inclusive)
 const ubyte[2] RANGE_TOGGLETIME = [0, 7]; // usually, it sits at 5.5-6 micro-seconds
 /// safe degrees_lost range (inclusive)
-const ubyte[2] RANGE_DEGLOST = [0, 8]; // anything above 8 is big bad, because that means <45 updates per rotation. 4 is ideal
+const ubyte[2] RANGE_SECTORS = [80, 100]; // range for sectors per revolution (depends on toggleTime and RPM)
 /// background color when reading is outside range
 const Color ABNORMAL_BG_COLOR = Color.red;
 /// alternative text color
@@ -78,7 +78,7 @@ private:
 // widgets
 	QTerminal _term; /// terminal
 	QLayout _infoLayout; /// holds widgets showing status. Also used for timer events
-	TextLabelWidget _labelRpm, _labelToggleTime, _labelDegLost, _labelFps; /// display RPM, toggleTime, degrees per update, FPS
+	TextLabelWidget _labelRpm, _labelToggleTime, _labelSectorCount, _labelFps; /// display RPM, toggleTime, sectors per revolution, FPS
 	LogWidget _log; /// log of all input commands, and status
 	ProgressbarWidget _progBar; /// display how much of a playing animation has been played
 	QLayout _inputLayout; /// holds widgets for getting input
@@ -88,8 +88,11 @@ private:
 	string _dir; /// directory from where to find images
 	string _serialPath; /// path of serial file
 	Tid _ctrlTid; /// Tid of thread running ctrl()
+
+	/// If it's expecting Status from ctrl thread. True after Stop Calibration is sent
+	bool _expectingStatus;
 	
-	uinteger _rpm, _fps, _toggleTime, _degLost; /// stores last read values of  rpm, and toggleTime. _fps and _degLost are calculated
+	uinteger _rpm, _fps, _toggleTime, _sectorCount; /// stores last read values of  rpm, and toggleTime, & _sectorCount. _fps is calculated
 	uinteger _animationFramesPlayed, _animationFramesTotal; /// number of frams of an animation that have been played/total
 	/// stores commands previously executed
 	List!string _commandHistory;
@@ -98,7 +101,6 @@ private:
 protected:
 	/// interpretes commands, & gets them executed
 	void execCommand(string command){
-		_log.add("> "~command);
 		string error;
 		CtrlMessage commandMessage = readCommand(command, _dir, error);
 		if (error.length > 0){
@@ -107,6 +109,8 @@ protected:
 			_log.add("  "~commandMessage.prettyString);
 			// send it away
 			_ctrlTid.send(commandMessage);
+			if (commandMessage.type == CtrlMessage.Type.StopCalibration)
+				_expectingStatus = true;
 		}
 	}
 	/// keyboard for _commandInput
@@ -139,7 +143,18 @@ protected:
 	}
 	/// timer event. Just using one timer event to update all widgets, avoiding loosing time in multiple function calls
 	void timer(QWidget widget){
-		// TODO: receive new stats from thread
+		receiveTimeout(Duration.min, (CtrlMessage msg){
+			// obviously, it's a Type.Status, but still, make sure
+			if (msg.type == CtrlMessage.Type.Status){
+				_rpm = msg.RPM;
+				_toggleTime = msg.toggleTime;
+				_animationFramesTotal = msg.frameTotal;
+				_animationFramesPlayed = msg.frame + 1;
+				_sectorCount = msg.sectorCount;
+				_fps = msg.calculatedFps;
+
+			}
+		});
 
 		// update stat labels
 		// first comes rpm
@@ -155,11 +170,11 @@ protected:
 		else
 			_labelToggleTime.backgroundColor = DEFAULT_BG;
 		// then degrees lost
-		_labelDegLost.caption = "DegreesLost:  "~_degLost.to!string;
-		if (_degLost < RANGE_DEGLOST[0] || _degLost > RANGE_DEGLOST[1])
-			_labelDegLost.backgroundColor = ABNORMAL_BG_COLOR;
+		_labelSectorCount.caption = "Sectors:  "~_sectorCount.to!string;
+		if (_sectorCount < RANGE_SECTORS[0] || _sectorCount > RANGE_SECTORS[1])
+			_labelSectorCount.backgroundColor = ABNORMAL_BG_COLOR;
 		else
-			_labelDegLost.backgroundColor = DEFAULT_BG;
+			_labelSectorCount.backgroundColor = DEFAULT_BG;
 		// and finally FPS
 		_labelFps.caption = "FPS:  "~_fps.to!string; // no range, just display it
 		
@@ -199,14 +214,14 @@ public:
 		_labelRpm = new TextLabelWidget();
 		_labelToggleTime = new TextLabelWidget();
 		_labelFps = new TextLabelWidget();
-		_labelDegLost = new TextLabelWidget();
+		_labelSectorCount = new TextLabelWidget();
 		_log = new LogWidget();
 		_progBar = new ProgressbarWidget(1,1);
 		_inputLayout = new QLayout(QLayout.Type.Horizontal);
 		_labelInput = new TextLabelWidget(">");
 		_commandInput = new EditLineWidget();
 		// arrange the elements
-		_infoLayout.addWidget([_labelToggleTime, _labelRpm, _labelDegLost, _labelFps]);
+		_infoLayout.addWidget([_labelToggleTime, _labelRpm, _labelSectorCount, _labelFps]);
 		_inputLayout.addWidget([_labelInput, _commandInput]);
 		_term.addWidget([_infoLayout, _log, _progBar, _inputLayout]);
 		// set the status indicators
@@ -222,7 +237,7 @@ public:
 		_progBar.textColor = DEFAULT_FG;
 		_progBar.size.maxHeight = 1;
 		// register all widgets
-		_term.registerWidget([_labelToggleTime, _labelRpm, _labelDegLost, _labelFps, _infoLayout, _log,
+		_term.registerWidget([_labelToggleTime, _labelRpm, _labelSectorCount, _labelFps, _infoLayout, _log,
 			 _progBar, _inputLayout, _labelInput, _commandInput]);
 		// tie timer event to layout
 		_infoLayout.onTimerEvent = &timer;
@@ -231,11 +246,14 @@ public:
 	}
 	/// destructor
 	~this(){
-		// TODO: close the serial file
+		// tell children to commit suicide (die)
+		CtrlMessage msg;
+		msg.type = CtrlMessage.Type.Terminate;
+		_ctrlTid.send(msg);
 		// kill all the children (of the terminal)
 		.destroy(_labelRpm);
 		.destroy(_labelToggleTime);
-		.destroy(_labelDegLost);
+		.destroy(_labelSectorCount);
 		.destroy(_labelFps);
 		.destroy(_log);
 		.destroy(_infoLayout);

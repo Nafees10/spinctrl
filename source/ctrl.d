@@ -22,13 +22,14 @@ public struct CtrlMessage{
 		StopCalibration, /// back to displaying, and send the average RPM & ToggleTime back soon (with this.Type.Status)
 		Terminate, /// ownerTid telling ctrl to terminate
 		Status, /// sending status from ctrl to UI
+		Log, /// sending text from ctrl to UI to display on log
 	}
 	/// Stores type of this message
 	Type type;
 	public union{
 		/// stores image path for this.Type.DrawImage && this.Type.DrawAnimation
 		public string imgPath;
-		/// stores text to display for this.Type.DrawText
+		/// stores text to display for this.Type.DrawText, or for Log
 		public string text;
 		/// stores name of animation for this.Type.DrawOnboard
 		public string onboardName;
@@ -41,9 +42,18 @@ public struct CtrlMessage{
 			ubyte toggleTime; /// average micro seconds to switch 1 pin from LOW->HIGH or HIGH->LOW. Only valid for Type.Status
 			ushort RPM; /// calculated RPM. Only valid for Type.Status
 			ushort frame; /// what frame is curerntly being displayed
+			ushort frameTotal; /// total number of frames
+			ubyte sectorCount; /// number of times LED strip updated in 1 revolution
+
+			ushort calculatedFps; /// FPS (drawings per second) calculated using RPM, done locally, not by spinner
 		}
-		/// fps to set it to by skipping frames
+		/// fps to set it to. For this.Type.FPS
 		public ubyte fps;
+	}
+
+	/// Calculates FPS using RPM
+	void calculateFps(){
+		this.calculatedFps = this.RPM / 60;
 	}
 
 	/// Returns: readable string representing this struct
