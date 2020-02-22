@@ -152,7 +152,12 @@ protected:
 				_animationFramesPlayed = msg.frame + 1;
 				_sectorCount = msg.sectorCount;
 				_fps = msg.calculatedFps;
-
+				if (_expectingStatus){
+					// log it
+					_log.add("#STATUS: "~msg.prettyString);
+				}
+			}else if (msg.type == CtrlMessage.Type.Log){
+				_log.add(msg.text);
 			}
 		});
 
