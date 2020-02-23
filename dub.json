@@ -4,6 +4,7 @@
 	],
 	"copyright": "Copyright © 2020, Nafees",
 	"dependencies": {
+		"dlib": "~>0.17.0",
 		"qui": "~>0.3.0",
 		"utils": "~>0.3.7"
 	},
