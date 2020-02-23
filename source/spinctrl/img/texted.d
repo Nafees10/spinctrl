@@ -1,16 +1,16 @@
-module spinctrl.texted;
+module spinctrl.img.texted;
 
 import utils.misc;
 
 
 /// Returns: true if a character can be displayed
-package bool canDisplay(char c){
+public bool canDisplay(char c){
 	// TODO implement
 	return true;
 }
 
 /// Returns: true if all characters in a string can be displayed
-package bool canDisplay(string s){
+public bool canDisplay(string s){
 	foreach (c; s){
 		if (!canDisplay(c))
 			return false;
