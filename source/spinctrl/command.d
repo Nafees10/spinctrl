@@ -8,7 +8,7 @@ import std.range;
 import std.conv : to;
 
 import spinctrl.ctrl : CtrlMessage;
-import spinctrl.texted : canDisplay;
+import spinctrl.img.texted : canDisplay;
 
 /// List of all valid commands
 private const string[] COMMANDS = [

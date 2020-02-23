@@ -94,5 +94,9 @@ public struct CtrlMessage{
 /// Awaits `ctrl.Message`, executes received commands. Frequently, sends back RPM and toggleTime
 void ctrlThread(){
 	Tid serialThread = spawn(&serialIOThread);
-	
+	receive((CtrlMessage msg){
+
+	}, (IOMessage msg){
+		
+	});
 }
