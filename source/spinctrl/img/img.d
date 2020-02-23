@@ -11,17 +11,22 @@ const ubyte GROUP_LEDS_COUNT = 4;
 /// 
 /// `n` is the number of groups of LEDs available
 /// `sectors` is the number of sectors in a frame
-package struct RawFrame(ubyte n = 4, ubyte sectors = 90){
+package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
+	/// possible colors of LEDs
+	enum Color : ubyte{
+		Green, /// .
+		Blue, /// .
+	}
 	/// stores the raw image
 	ubyte[n][sectors] _imgData;
 	/// postblit
 	this(this){
 		_imgData = _imgData.dup;
 	}
-	/// Returns: status of LEDs (true = on, false = off) at a sector.
-	/// The returned array contains status of Blue LEDs on even numbered (and 0) indexes, and Green at odd 
-	bool[n*GROUP_LEDS_COUNT] readSector(ubyte sector){
-		bool[n * GROUP_LEDS_COUNT] r;
+	/// Returns: status of both color LEDs (true = on, false = off) at a sector.
+	/// Green are even indexes (including zero), blue are odd
+	bool[n*GROUP_LEDS_COUNT*2] readSector(ubyte sector){
+		bool[n * GROUP_LEDS_COUNT*2] r;
 		const ubyte[n] groups = _imgData[sector];
 		foreach(index, group; groups){
 			const ubyte index8 = index * 8;
@@ -31,4 +36,19 @@ package struct RawFrame(ubyte n = 4, ubyte sectors = 90){
 		}
 		return r;
 	}
+	/// Returns: status of 1 colored LEDs (true = on, false = off) at a sector
+	bool[n*GROUP_LEDS_COUNT] readSector(ubyte sector, Color col){
+		/// offset due to color choice
+		const ubyte colorOffset = col == Color.Green ? 0 : 1;
+		bool[n * GROUP_LEDS_COUNT] r;
+		const ubyte[n] groups = _imgData[sector];
+		foreach(index, group; groups){
+			const ubyte index8 = index * 8;
+			foreach(i; 0 .. 4){
+				r[index8+7 - ((i*2)+colorOffset)] = (group >> (i*2)+colorOffset) % 2 ? true : false;
+			}
+		}
+		return r;
+	}
+
 }
