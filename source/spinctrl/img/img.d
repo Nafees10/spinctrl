@@ -43,9 +43,9 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 		bool[n * GROUP_LEDS_COUNT] r;
 		const ubyte[n] groups = _imgData[sector];
 		foreach(index, group; groups){
-			const ubyte index8 = index * 8;
+			const ubyte index4 = index * 4;
 			foreach(i; 0 .. 4){
-				r[index8+7 - ((i*2)+colorOffset)] = (group >> (i*2)+colorOffset) % 2 ? true : false;
+				r[index4+7 - ((i*2)+colorOffset)] = (group >> (i*2)+colorOffset) % 2 ? true : false;
 			}
 		}
 		return r;
