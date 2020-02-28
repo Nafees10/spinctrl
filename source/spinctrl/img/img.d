@@ -40,7 +40,7 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 		foreach(index, group; groups){
 			const ubyte index4 = index * 4;
 			foreach(i; 0 .. 4){
-				r[index4+(3 - i)] = cast(Color)((group >>> (i*2)) % 3);
+				r[index4+(3 - i)] = cast(Color)((group >>> (i*2)) % 4);
 			}
 		}
 		return r;
@@ -49,6 +49,13 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 	/// 
 	/// Returns: true on success, false on fail (i.e sector invalid)
 	bool writeSector(ubyte sector, Color[n*GROUP_LEDS_COUNT] ledStatus){
-		// TODO
+		if (sector >= sectors)
+			return false;
+		ubyte[n] sectorData;
+		foreach(i; 0 .. n){
+			
+		}
+		_imgData[sector] = sectorData;
+		return true;
 	}
 }
