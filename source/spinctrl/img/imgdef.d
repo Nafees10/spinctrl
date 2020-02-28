@@ -1,4 +1,4 @@
-module spinctrl.img.img;
+module spinctrl.img.imgdef;
 
 import utils.misc;
 
