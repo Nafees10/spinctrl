@@ -7,10 +7,20 @@ import std.conv : to;
 /// Number of LEDs in a group. DO NOT CHANGE
 const ubyte GROUP_LEDS_COUNT = 4;
 
+/// possible status of LEDs
+package enum Color : ubyte{
+	Off = 0B00000000, /// .
+	Green = 0B00000001, /// .
+	Blue = 0B00000010, /// .
+	Cyan = 0B00000011, /// .
+}
+
 /// To store a raw frame, uncompressed
 /// 
 /// `n` is the number of groups of LEDs available
 /// `sectors` is the number of sectors in a frame
+/// 
+/// keep in mind that the sectors are read from LED closest to circumference at index 0
 package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 	/// Returns: number of sectors
 	@property ubyte sectorCount(){
@@ -19,13 +29,6 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 	/// Returns: number of groups of LEDs
 	@property ubyte groupCount(){
 		return n;
-	}
-	/// possible status of LEDs
-	enum Color : ubyte{
-		Off = 0B00000000, /// .
-		Green = 0B00000001, /// .
-		Blue = 0B00000010, /// .
-		Cyan = 0B00000011, /// .
 	}
 	/// stores the raw image, this directly represents the stream generated at end
 	ubyte[n][sectors] _imgData;
@@ -40,7 +43,7 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 		foreach(index, group; groups){
 			const ubyte index4 = cast(const ubyte)(index * 4);
 			foreach(i; 0 .. 4){
-				r[index4+(3 - i)] = cast(Color)((group >>> (i*2)) % 4);
+				r[index4+i] = cast(Color)((group >>> (i*2)) % 4);
 			}
 		}
 		return r;
@@ -64,5 +67,22 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 }
 /// 
 unittest{
+	import std.random : uniform;
 	RawFrame!(5, 72) frame;
+	Color[5 * GROUP_LEDS_COUNT][4] sequences;
+	// fill sequences randomly
+	foreach (i; 0 .. sequences.length){
+		foreach(led; 0 .. sequences[i].length){
+			sequences[i][led] = cast(Color)cast(ubyte)uniform(0, 4);
+		}
+	}
+	// write sequences to RawFrame
+	foreach (sector; 0 .. 72){
+		frame.writeSector(cast(ubyte)sector, cast(Color[20])sequences[sector % sequences.length]);
+	}
+	// now read and match
+	foreach (sector; 0 .. 72){
+		Color[20] read = frame.readSector(cast(ubyte)sector);
+		assert (read == cast(Color[20])sequences[sector % sequences.length]);
+	}
 }
