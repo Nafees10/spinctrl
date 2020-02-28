@@ -64,6 +64,24 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 		}
 		return true;
 	}
+	/// Converts this frame into a single stream of ubytes
+	/// 
+	/// if `includeHeader` is true, the header will be put at start of stream. Format for header is:
+	/// `[0x00, n(groups), n(sectors)]`
+	ubyte[] toStream(bool includeHeader = false){
+		ubyte[] r = [];
+		if (includeHeader){
+			r = [0x00, n, sectors];
+		}
+		// start appending sectors to it
+		uinteger writeIndex = r.length;
+		r.length += sectors * n;
+		foreach (sector; _imgData){
+			r[writeIndex .. writeIndex + n] = sector;
+			writeIndex += n;
+		}
+		return r;
+	}
 }
 /// 
 unittest{
