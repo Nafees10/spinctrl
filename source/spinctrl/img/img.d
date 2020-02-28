@@ -51,11 +51,14 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 	bool writeSector(ubyte sector, Color[n*GROUP_LEDS_COUNT] ledStatus){
 		if (sector >= sectors)
 			return false;
-		ubyte[n] sectorData;
-		foreach(i; 0 .. n){
-			
+		foreach(group; 0 .. n){
+			ubyte groupData;
+			ubyte readIndex = group*GROUP_LEDS_COUNT;
+			foreach (i; 0 .. GROUP_LEDS_COUNT){
+				groupData += ledStatus[readIndex + i] << (i*2);
+			}
+			_imgData[sector][group] = groupData;
 		}
-		_imgData[sector] = sectorData;
 		return true;
 	}
 }
