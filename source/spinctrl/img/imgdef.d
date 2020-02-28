@@ -4,7 +4,7 @@ import utils.misc;
 
 import std.conv : to;
 
-/// Number of LEDs in a group
+/// Number of LEDs in a group. DO NOT CHANGE
 const ubyte GROUP_LEDS_COUNT = 4;
 
 /// To store a raw frame, uncompressed
@@ -38,7 +38,7 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 		Color[n * GROUP_LEDS_COUNT] r;
 		const ubyte[n] groups = _imgData[sector];
 		foreach(index, group; groups){
-			const ubyte index4 = index * 4;
+			const ubyte index4 = cast(const ubyte)(index * 4);
 			foreach(i; 0 .. 4){
 				r[index4+(3 - i)] = cast(Color)((group >>> (i*2)) % 4);
 			}
@@ -53,7 +53,7 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 			return false;
 		foreach(group; 0 .. n){
 			ubyte groupData;
-			ubyte readIndex = group*GROUP_LEDS_COUNT;
+			const ubyte readIndex = cast(const ubyte)(group*GROUP_LEDS_COUNT);
 			foreach (i; 0 .. GROUP_LEDS_COUNT){
 				groupData += ledStatus[readIndex + i] << (i*2);
 			}
@@ -61,4 +61,8 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 		}
 		return true;
 	}
+}
+/// 
+unittest{
+	RawFrame!(5, 72) frame;
 }
