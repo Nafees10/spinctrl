@@ -18,20 +18,24 @@ package enum Color : ubyte{
 /// To store a raw frame, uncompressed
 /// 
 /// `n` is the number of groups of LEDs available
-/// `sectors` is the number of sectors in a frame
+/// `_imgData.length` is the number of _imgData.length in a frame
 /// 
-/// keep in mind that the sectors are read from LED closest to circumference at index 0
-package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
+/// keep in mind that the _imgData.length are read from LED closest to circumference at index 0
+package struct RawFrame(ubyte n = 5){
+	/// constructor
+	this (ubyte sectorsCount){
+		this._imgData.length = sectorsCount;
+	}
 	/// Returns: number of sectors
-	@property ubyte sectorCount(){
-		return sectors;
+	@property ubyte sectors(){
+		return cast(ubyte)(_imgData.length);
 	}
 	/// Returns: number of groups of LEDs
 	@property ubyte groupCount(){
 		return n;
 	}
 	/// stores the raw image, this directly represents the stream generated at end
-	ubyte[n][sectors] _imgData;
+	ubyte[n][] _imgData;
 	/// postblit, makes sure all _imgData are separate
 	this(this){
 		_imgData = _imgData.dup;
@@ -52,7 +56,7 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 	/// 
 	/// Returns: true on success, false on fail (i.e sector invalid)
 	bool writeSector(ubyte sector, Color[n*GROUP_LEDS_COUNT] ledStatus){
-		if (sector >= sectors)
+		if (sector >= _imgData.length)
 			return false;
 		foreach(group; 0 .. n){
 			ubyte groupData;
@@ -67,15 +71,15 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 	/// Converts this frame into a single stream of ubytes
 	/// 
 	/// if `includeHeader` is true, the header will be put at start of stream. Format for header is:
-	/// `[0x00, n(groups), n(sectors)]`
+	/// `[0x00, n(groups), n(_imgData.length)]`
 	ubyte[] toStream(bool includeHeader = false){
 		ubyte[] r = [];
 		if (includeHeader){
-			r = [0x00, n, sectors];
+			r = [0x00, n, cast(ubyte)(_imgData.length)];
 		}
-		// start appending sectors to it
+		// start appending _imgData.length to it
 		uinteger writeIndex = r.length;
-		r.length += sectors * n;
+		r.length += _imgData.length * n;
 		foreach (sector; _imgData){
 			r[writeIndex .. writeIndex + n] = sector;
 			writeIndex += n;
@@ -86,7 +90,7 @@ package struct RawFrame(ubyte n = 5, ubyte sectors = 72){
 /// 
 unittest{
 	import std.random : uniform;
-	RawFrame!(5, 72) frame;
+	auto frame = RawFrame!5(72);
 	Color[5 * GROUP_LEDS_COUNT][4] sequences;
 	// fill sequences randomly
 	foreach (i; 0 .. sequences.length){
