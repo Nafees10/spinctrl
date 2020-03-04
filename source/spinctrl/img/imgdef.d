@@ -6,6 +6,8 @@ import std.conv : to;
 
 /// Number of LEDs in a group. DO NOT CHANGE
 const ubyte GROUP_LEDS_COUNT = 4;
+/// Number of groups of LEDs. safe to change, just be sure to put actual LEDs on spinner
+const ubyte GROUP_COUNT = 5;
 
 /// possible status of LEDs
 package enum Color : ubyte{
@@ -21,7 +23,7 @@ package enum Color : ubyte{
 /// `_imgData.length` is the number of _imgData.length in a frame
 /// 
 /// keep in mind that the _imgData.length are read from LED closest to circumference at index 0
-package struct RawFrame(ubyte n = 5){
+package struct RawFrame{
 	/// constructor
 	this (ubyte sectorsCount){
 		this._imgData.length = sectorsCount;
@@ -30,20 +32,16 @@ package struct RawFrame(ubyte n = 5){
 	@property ubyte sectors(){
 		return cast(ubyte)(_imgData.length);
 	}
-	/// Returns: number of groups of LEDs
-	@property ubyte groupCount(){
-		return n;
-	}
 	/// stores the raw image, this directly represents the stream generated at end
-	ubyte[n][] _imgData;
+	ubyte[GROUP_COUNT][] _imgData;
 	/// postblit, makes sure all _imgData are separate
 	this(this){
 		_imgData = _imgData.dup;
 	}
 	/// Returns: status of LEDs at a sector.
-	Color[n*GROUP_LEDS_COUNT] readSector(ubyte sector){
-		Color[n * GROUP_LEDS_COUNT] r;
-		const ubyte[n] groups = _imgData[sector];
+	Color[GROUP_COUNT*GROUP_LEDS_COUNT] readSector(ubyte sector){
+		Color[GROUP_COUNT * GROUP_LEDS_COUNT] r;
+		const ubyte[GROUP_COUNT] groups = _imgData[sector];
 		foreach(index, group; groups){
 			const ubyte index4 = cast(const ubyte)(index * 4);
 			foreach(i; 0 .. 4){
@@ -55,10 +53,10 @@ package struct RawFrame(ubyte n = 5){
 	/// Writes to a sector
 	/// 
 	/// Returns: true on success, false on fail (i.e sector invalid)
-	bool writeSector(ubyte sector, Color[n*GROUP_LEDS_COUNT] ledStatus){
+	bool writeSector(ubyte sector, Color[GROUP_COUNT*GROUP_LEDS_COUNT] ledStatus){
 		if (sector >= _imgData.length)
 			return false;
-		foreach(group; 0 .. n){
+		foreach(group; 0 .. GROUP_COUNT){
 			ubyte groupData;
 			const ubyte readIndex = cast(const ubyte)(group*GROUP_LEDS_COUNT);
 			foreach (i; 0 .. GROUP_LEDS_COUNT){
@@ -74,15 +72,12 @@ package struct RawFrame(ubyte n = 5){
 	/// `[0x00, n(groups), n(_imgData.length)]`
 	ubyte[] toStream(bool includeHeader = false){
 		ubyte[] r = [];
-		if (includeHeader){
-			r = [0x00, n, cast(ubyte)(_imgData.length)];
-		}
 		// start appending _imgData.length to it
-		uinteger writeIndex = r.length;
-		r.length += _imgData.length * n;
+		uinteger writeIndex = 0;
+		r.length = _imgData.length * GROUP_COUNT;
 		foreach (sector; _imgData){
-			r[writeIndex .. writeIndex + n] = sector;
-			writeIndex += n;
+			r[writeIndex .. writeIndex + GROUP_COUNT] = sector;
+			writeIndex += GROUP_COUNT;
 		}
 		return r;
 	}
@@ -90,7 +85,7 @@ package struct RawFrame(ubyte n = 5){
 /// 
 unittest{
 	import std.random : uniform;
-	auto frame = RawFrame!5(72);
+	auto frame = RawFrame(72);
 	Color[5 * GROUP_LEDS_COUNT][4] sequences;
 	// fill sequences randomly
 	foreach (i; 0 .. sequences.length){
