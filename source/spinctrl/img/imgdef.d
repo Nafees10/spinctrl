@@ -4,7 +4,7 @@ import utils.misc;
 
 import std.conv : to;
 
-/// Number of LEDs in a group. DO NOT CHANGE
+/// Number of LEDs in a group. **DO NOT CHANGE**
 const ubyte GROUP_LEDS_COUNT = 4;
 /// Number of groups of LEDs. safe to change, just be sure to put actual LEDs on spinner
 const ubyte GROUP_COUNT = 5;
@@ -67,10 +67,7 @@ package struct RawFrame{
 		return true;
 	}
 	/// Converts this frame into a single stream of ubytes
-	/// 
-	/// if `includeHeader` is true, the header will be put at start of stream. Format for header is:
-	/// `[0x00, n(groups), n(_imgData.length)]`
-	ubyte[] toStream(bool includeHeader = false){
+	ubyte[] toStream(){
 		ubyte[] r = [];
 		// start appending _imgData.length to it
 		uinteger writeIndex = 0;
