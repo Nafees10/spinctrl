@@ -8,6 +8,8 @@ import std.conv : to;
 const ubyte GROUP_LEDS_COUNT = 4;
 /// Number of groups of LEDs. safe to change, just be sure to put actual LEDs on spinner
 const ubyte GROUP_COUNT = 5;
+/// distance b/w LEDs
+const ubyte LED_DIST_MM = 5;
 
 /// possible status of LEDs
 package enum Color : ubyte{
