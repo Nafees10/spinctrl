@@ -8,106 +8,49 @@ import utils.misc;
 import arsd.png;
 import arsd.color;
 
-import std.math : sin, cos, PI, abs;
+import std.math;
 
 public alias Color = spinctrl.img.imgdef.Color;
 
 /// To generate RawFrames from PNG images or draw directly to them
 public class FrameMake{
 private:
-	TrigCalc _calcu; /// used to find position of pixels
 	ubyte _sectors; /// number of sectors
 public:
 	/// constructor
 	this(ubyte sectors){
 		_sectors = sectors;
-		_calcu = new TrigCalc(_sectors);
 	}
 	~this(){
-		.destroy(_calcu);
+
 	}
 }
 
-import std.stdio;
-
-/// Used by FrameMake to do trigonometric calculations
-private class TrigCalc{
-private:
-	/// stores led number for a [x, y]. Read as: [(y*width) + x]
-	ubyte[] _leds;
-	/// stores sector number for a [x, y]. Read as: [(y*width) + x]
-	ubyte[] _sectors;
-
-	/// stores number of sectors
-	ubyte _sectorsCount;
-
-	/// calculates _xpos and _ypos
-	void calculate(){
-		_leds.length = _sectorsCount * GROUP_LEDS_COUNT * GROUP_COUNT;
-		_sectors.length = _leds.length;
-		// by default, set all to 255
-		_leds[] = 255;
-		_sectors[] = 255;
-		static const ubyte[2][4] origins = [
-			[GROUP_LEDS_COUNT*GROUP_COUNT,GROUP_LEDS_COUNT*GROUP_COUNT],
-			[(GROUP_LEDS_COUNT*GROUP_COUNT)-1,GROUP_LEDS_COUNT*GROUP_COUNT],
-			[(GROUP_LEDS_COUNT*GROUP_COUNT)-1,(GROUP_LEDS_COUNT*GROUP_COUNT)+1],
-			[(GROUP_LEDS_COUNT*GROUP_COUNT)+1,(GROUP_LEDS_COUNT*GROUP_COUNT)+1],
-		];
-		foreach(sector; 0 .. _sectorsCount){
-			foreach(led; 0 .. GROUP_LEDS_COUNT * GROUP_COUNT){
-				immutable float abAngle = (360 / _sectorsCount) * sector;
-				immutable ubyte quadrant = abAngle <= 90 ? 1 : abAngle <= 180 ? 2 : abAngle <= 270 ? 3 : 4;
-				immutable float xDist = led * abs(cos(abAngle * (PI / 180)));
-				immutable float yDist = led * abs(sin(abAngle * (PI / 180)));
-				uint x, y;
-				if (quadrant == 1){
-					x = cast(uint)(origins[1][0] + xDist);
-					y = cast(uint)(origins[1][1] - yDist);
-				}else if (quadrant == 2){
-					x = cast(uint)(origins[1][0] - xDist);
-					y = cast(uint)(origins[1][1] - yDist);
-				}else if (quadrant == 3){
-					x = cast(uint)(origins[1][0] - xDist);
-					y = cast(uint)(origins[1][1] + yDist);
-				}else if (quadrant == 4){
-					x = cast(uint)(origins[1][0] + xDist);
-					y = cast(uint)(origins[1][1] + yDist);
-				}
-				if ((x < 2*GROUP_COUNT*GROUP_LEDS_COUNT) && (y < 2*GROUP_COUNT*GROUP_LEDS_COUNT)){
-					immutable uint index = (y*GROUP_COUNT*GROUP_LEDS_COUNT) + x;
-					_leds[index] = cast(ubyte)led;
-					_sectors[index] = cast(ubyte)sector;
-				}
-			}
-		}
-	}
-public:
-	/// constructor
-	/// 
-	/// generates values for xPos and yPos, prepares to "render" to display, so this might take some time to exit
-	/// 
-	/// `sectorsCount` is number of sectors
-	this(ubyte sectorsCount){
-		_sectorsCount = sectorsCount;
-		calculate();
-	}
-	/// Returns: [sector, led] coordinates of a x, y pixel
-	ubyte[2] getPixelPosition(ubyte x, ubyte y){
-		immutable uint index = (y*GROUP_COUNT*GROUP_LEDS_COUNT) + x;
-		return [_sectors[index], _leds[index]];
-	}
+/// Returns: [angle, led] for a pixel at (x, y). If out of range, returns [-1, -1]
+int[2] getLedAngle(ubyte x, ubyte y){
+	/// center lines
+	immutable ubyte center = GROUP_COUNT*GROUP_LEDS_COUNT; // 20
+	/// stores quadrant
+	immutable ubyte quadrant = x < center ? (y < center ? 2 : 3) : (y < center ? 1 : 4);
+	// x, y, and hypotenuse distance from origin
+	immutable uint xDist = x == center ? 0 : abs(center - x);
+	immutable uint yDist = y == center ? 0 : abs(center - y);
+	immutable uint led = cast(immutable uint)round(sqrt(cast(float)(pow(xDist, 2) + pow(yDist, 2))));
+	if (xDist + yDist == 0 || led > center)
+		return [-1, -1];
+	// now calculate angle
+	immutable float baseAngle = abs(atan2(cast(float)xDist, cast(float)yDist)) * (180 / PI);
+	immutable uint angle = cast(uint)(quadrant == 1 ? baseAngle : quadrant == 2 ? 180 - baseAngle : 
+		quadrant == 3 ? 180 + baseAngle : 360 - baseAngle);
+	return [angle, led];
 }
 /// 
 unittest{
-	// output coordinates to stdio, to see blind spots
-	TrigCalc calcu = new TrigCalc(60);
-	import std.stdio : writeln;
-	TrueColorImage img = new TrueColorImage(40, 40);
-	foreach (ubyte x; 0 .. 2*GROUP_COUNT*GROUP_LEDS_COUNT){
-		foreach (ubyte y; 0 .. 2*GROUP_COUNT*GROUP_LEDS_COUNT){
-			ubyte[2] pos = calcu.getPixelPosition(x, y);
-			if (pos[0] == 255 || pos[1] == 255){
+	TrueColorImage img = new TrueColorImage(41, 41);
+	foreach (ubyte x; 0 .. 41){
+		foreach (ubyte y; 0 .. 41){
+			int[2] pos = getLedAngle(x, y);
+			if (pos[0] == -1 && pos[1] == -1){
 				img.setPixel(x, y, arsd.color.Color.red);
 			}else{
 				img.setPixel(x, y, arsd.color.Color.green);
