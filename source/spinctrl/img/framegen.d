@@ -28,6 +28,8 @@ public:
 	}
 }
 
+import std.stdio;
+
 /// Used by FrameMake to do trigonometric calculations
 private class TrigCalc{
 private:
@@ -41,6 +43,11 @@ private:
 
 	/// calculates _xpos and _ypos
 	void calculate(){
+		_leds.length = _sectorsCount * GROUP_LEDS_COUNT * GROUP_COUNT;
+		_sectors.length = _leds.length;
+		// by default, set all to 255
+		_leds[] = 255;
+		_sectors[] = 255;
 		static const ubyte[2][4] origins = [
 			[GROUP_LEDS_COUNT*GROUP_COUNT,GROUP_LEDS_COUNT*GROUP_COUNT],
 			[(GROUP_LEDS_COUNT*GROUP_COUNT)-1,GROUP_LEDS_COUNT*GROUP_COUNT],
@@ -48,12 +55,12 @@ private:
 			[(GROUP_LEDS_COUNT*GROUP_COUNT)+1,(GROUP_LEDS_COUNT*GROUP_COUNT)+1],
 		];
 		foreach(sector; 0 .. _sectorsCount){
-			uint x, y;
 			foreach(led; 0 .. GROUP_LEDS_COUNT * GROUP_COUNT){
 				immutable float abAngle = (360 / _sectorsCount) * sector;
 				immutable ubyte quadrant = abAngle <= 90 ? 1 : abAngle <= 180 ? 2 : abAngle <= 270 ? 3 : 4;
 				immutable float xDist = led * abs(cos(abAngle * (PI / 180)));
 				immutable float yDist = led * abs(sin(abAngle * (PI / 180)));
+				uint x, y;
 				if (quadrant == 1){
 					x = cast(uint)(origins[1][0] + xDist);
 					y = cast(uint)(origins[1][1] - yDist);
@@ -67,10 +74,11 @@ private:
 					x = cast(uint)(origins[1][0] + xDist);
 					y = cast(uint)(origins[1][1] + yDist);
 				}
-
-				immutable uint index = (y*GROUP_COUNT*GROUP_LEDS_COUNT) + x;
-				_leds[index] = cast(ubyte)led;
-				_sectors[index] = cast(ubyte)sector;
+				if ((x < 2*GROUP_COUNT*GROUP_LEDS_COUNT) && (y < 2*GROUP_COUNT*GROUP_LEDS_COUNT)){
+					immutable uint index = (y*GROUP_COUNT*GROUP_LEDS_COUNT) + x;
+					_leds[index] = cast(ubyte)led;
+					_sectors[index] = cast(ubyte)sector;
+				}
 			}
 		}
 	}
@@ -89,4 +97,22 @@ public:
 		immutable uint index = (y*GROUP_COUNT*GROUP_LEDS_COUNT) + x;
 		return [_sectors[index], _leds[index]];
 	}
+}
+/// 
+unittest{
+	// output coordinates to stdio, to see blind spots
+	TrigCalc calcu = new TrigCalc(60);
+	import std.stdio : writeln;
+	TrueColorImage img = new TrueColorImage(40, 40);
+	foreach (ubyte x; 0 .. 2*GROUP_COUNT*GROUP_LEDS_COUNT){
+		foreach (ubyte y; 0 .. 2*GROUP_COUNT*GROUP_LEDS_COUNT){
+			ubyte[2] pos = calcu.getPixelPosition(x, y);
+			if (pos[0] == 255 || pos[1] == 255){
+				img.setPixel(x, y, arsd.color.Color.red);
+			}else{
+				img.setPixel(x, y, arsd.color.Color.green);
+			}
+		}
+	}
+	writePng("spot.png", img);
 }
