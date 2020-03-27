@@ -5,7 +5,7 @@
 	"copyright": "Copyright © 2020, Nafees",
 	"dependencies": {
 		"qui": "~>0.3.0",
-		"utils": "~>0.3.7"
+		"utils": "~>0.3.8"
 	},
 	"description": "Controls spinning LED strip",
 	"license": "proprietary",
