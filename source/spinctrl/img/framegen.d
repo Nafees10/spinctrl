@@ -63,8 +63,9 @@ unittest{
 	string[] strList;
 	strList.length = list.length;
 	foreach (i, val; list){
-		strList[i] = list[i].to!string;
+		strList[i] = list[i][0].to!string ~ "\t\t" ~list[i][1].to!string;
 	}
+	strList = "angle\tled" ~ strList;
 	arrayToFile(strList, "angles");
 }
 
